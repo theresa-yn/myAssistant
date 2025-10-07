@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: myassistant
+    env: python
+    buildCommand: pip install -e .
+    startCommand: assistant-web
+    plan: free

@@ -375,8 +375,10 @@ class WebAssistant:
                 "message": f"Error processing audio: {str(e)}"
             }))
 
-    def run(self, host: str = "127.0.0.1", port: int = 8001):
+    def run(self, host: str = "0.0.0.0", port: int = None):
         """Run the web application"""
+        if port is None:
+            port = int(os.environ.get("PORT", 8001))
         uvicorn.run(self.app, host=host, port=port)
 
 
