@@ -23,6 +23,8 @@ dependencies = [
 [project.scripts]
 assistant = "myassistant.cli:main"
 assistant-gui = "myassistant.gui:main"
+assistant-minimal = "myassistant.minimal_gui:main"
+assistant-web = "myassistant.web_gui:main"
 
 [tool.uv]
 dev-dependencies = [
