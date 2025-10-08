@@ -231,6 +231,7 @@ class WebAssistant:
                     </div>
                     
                     <button id="testSpeech" class="test-speech-btn" onclick="testSpeech()">🔊 Test Speech</button>
+                    <button id="testAIResponse" class="test-speech-btn" onclick="testAIResponse()">🤖 Test AI Response</button>
                     
                     <div id="aiResponse" class="ai-response" style="display: none;">
                         <h4>🤖 MyAssistant says:</h4>
@@ -270,6 +271,7 @@ class WebAssistant:
                     }
 
                     function handleMessage(data) {
+                        console.log('Received message:', data);
                         if (data.type === 'status') {
                             document.getElementById('status').textContent = data.message;
                         } else if (data.type === 'memory_stored') {
@@ -278,7 +280,10 @@ class WebAssistant:
                             
                             // Show AI response if available
                             if (data.ai_response) {
+                                console.log('AI response received:', data.ai_response);
                                 showAIResponse(data.ai_response);
+                            } else {
+                                console.log('No AI response in message');
                             }
                             
                             showRecentMemories(data.recent);
@@ -303,6 +308,7 @@ class WebAssistant:
                     }
                     
                     function showAIResponse(response) {
+                        console.log('Showing AI response:', response);
                         const aiResponseDiv = document.getElementById('aiResponse');
                         const responseText = aiResponseDiv.querySelector('p');
                         responseText.textContent = response;
@@ -310,6 +316,7 @@ class WebAssistant:
                         
                         // Speak the AI response with proper language
                         const currentLang = document.getElementById('languageSelect').value;
+                        console.log('Speaking AI response with language:', currentLang);
                         speakWithLanguage(response, currentLang);
                         
                         // Add click to dismiss functionality
@@ -481,6 +488,18 @@ class WebAssistant:
                         } else {
                             speakWithLanguage("Hello! This is a test of the speech synthesis. Can you hear me?", 'en-US');
                         }
+                    }
+
+                    function testAIResponse() {
+                        console.log('Testing AI response speech...');
+                        const currentLang = document.getElementById('languageSelect').value;
+                        let testResponse;
+                        if (currentLang === 'vi-VN') {
+                            testResponse = "Xin chào! Tôi là MyAssistant. Tôi đã lưu thông tin của bạn và sẵn sàng trả lời câu hỏi!";
+                        } else {
+                            testResponse = "Hello! I'm MyAssistant. I've stored your information and I'm ready to answer questions!";
+                        }
+                        showAIResponse(testResponse);
                     }
 
                     function changeLanguage() {
