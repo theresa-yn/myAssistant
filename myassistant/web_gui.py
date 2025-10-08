@@ -397,8 +397,12 @@ class WebAssistant:
             sample_text = "Sample memory from voice input"
             memory_id = self.store.remember(sample_text)
             
-            # Get AI response
-            ai_response = self.ai_system.get_response(sample_text, "en")
+            # Get AI response (with error handling)
+            try:
+                ai_response = self.ai_system.get_response(sample_text, "en")
+            except Exception as e:
+                print(f"AI response error: {e}")
+                ai_response = "I've stored that information! Thanks for sharing with me."
             
             # Get updated count and recent memories
             memories = self.store.list_recent(limit=10)
