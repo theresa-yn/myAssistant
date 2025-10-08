@@ -7,4 +7,4 @@ langid==1.1.6
 numpy==2.3.3
 pydantic==2.12.0
 python-dotenv==1.1.1
-openai==1.51.0
+openai==2.2.0
