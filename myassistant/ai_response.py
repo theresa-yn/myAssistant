@@ -31,30 +31,37 @@ class AIResponseSystem:
         
         try:
             # Get recent memories for context
-            recent_memories = self.memory_store.list_recent(limit=5)
+            recent_memories = self.memory_store.list_recent(limit=10)
             context = "\n".join([f"- {mem.text}" for mem in recent_memories])
+            print(f"AI Context - Recent memories: {len(recent_memories)}")
+            print(f"AI Context - User message: {user_message}")
+            
+            # Also search for relevant memories based on the user's question
+            search_results = self.memory_store.ask(user_message, limit=5)
+            if search_results:
+                relevant_memories = "\n".join([f"- {mem.text} (relevance: {score:.2f})" for mem, score in search_results])
+                context += f"\n\nRelevant memories for your question:\n{relevant_memories}"
+                print(f"AI Context - Found {len(search_results)} relevant memories")
             
             # Create system prompt with reminder capabilities
             system_prompt = f"""You are MyAssistant, a helpful AI assistant with access to the user's personal memories and tasks. 
 
-Recent memories:
+Available memories:
 {context}
 
-You should:
-1. Be friendly and helpful
-2. Reference relevant memories when appropriate
-3. Answer questions based on stored information
-4. Keep responses concise and conversational
-5. Respond in {language} if possible
-6. **IMPORTANT: Proactively remind the user of tasks, deadlines, or important things they mentioned before**
-7. Look for patterns in their memories to suggest relevant reminders
-8. If they mention new tasks or deadlines, acknowledge and offer to remind them later
+CRITICAL INSTRUCTIONS:
+1. **ALWAYS answer questions based on the memories provided above**
+2. **If the user asks about something, search through the memories and provide specific information**
+3. **Be specific and reference exact details from the memories**
+4. **If you find relevant information, say "Based on what you told me..." or "I remember you said..."**
+5. **If no relevant memories are found, say "I don't have any information about that in my memory"**
+6. **Be friendly and conversational**
+7. **Keep responses concise but informative**
 
-Examples of proactive reminders:
-- "By the way, you mentioned you have a meeting tomorrow at 3 PM"
-- "Don't forget about your dentist appointment next week"
-- "You told me you wanted to call your mom this weekend"
-- "I remember you said you need to finish that project by Friday"
+Examples of good responses:
+- User: "What meetings do I have?" → "Based on what you told me, you have a meeting tomorrow at 3 PM with the marketing team."
+- User: "What did I say about my project?" → "I remember you said you need to finish the project by Friday and it's about the new website design."
+- User: "Tell me about my appointments" → "I don't have any information about appointments in my memory. You can tell me about them and I'll remember!"
 
 User message: {user_message}"""
 
@@ -145,7 +152,13 @@ User message: {user_message}"""
             elif any(word in message_lower for word in ["how are you", "how are you doing"]):
                 return "I'm doing great! I'm here to help you remember and organize your thoughts."
             elif any(word in message_lower for word in ["what", "who", "when", "where", "why", "how"]):
-                return "That's a great question! I can help you find information from your memories. Try asking me about something you've told me before."
+                # Search for relevant memories when user asks questions
+                memory_results = self.memory_store.ask(user_message, limit=3)
+                if memory_results:
+                    memory, score = memory_results[0]
+                    return f"Based on what you told me: {memory.text}"
+                else:
+                    return "I don't have any information about that in my memory. You can tell me about it and I'll remember!"
             elif any(word in message_lower for word in ["remember", "remind", "recall"]):
                 # Look for reminder-related memories
                 memory_results = self.memory_store.ask(user_message, limit=5)
@@ -166,9 +179,7 @@ User message: {user_message}"""
                 memory_results = self.memory_store.ask(user_message, limit=3)
                 if memory_results:
                     memory, score = memory_results[0]
-                    reminders = self._get_relevant_reminders(user_message)
-                    base_response = f"I found some related memories: {memory.text}. Would you like me to search for more information?"
-                    return base_response + (" " + reminders if reminders else "")
+                    return f"Based on what you told me: {memory.text}"
                 else:
                     return "I've stored that information! Is there anything specific you'd like to know about your memories?"
     
