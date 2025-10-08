@@ -10,12 +10,14 @@ import uvicorn
 import os
 
 from .memory_store import MemoryStore
+from .ai_response import AIResponseSystem
 
 
 class WebAssistant:
     def __init__(self):
         self.app = FastAPI(title="MyAssistant Web", version="0.1.0")
         self.store = MemoryStore()
+        self.ai_system = AIResponseSystem(self.store)
         self.active_connections: list[WebSocket] = []
         self.setup_routes()
         
@@ -134,6 +136,28 @@ class WebAssistant:
                         opacity: 0.7;
                         margin-top: 5px;
                     }
+                    
+                    .ai-response {
+                        background: rgba(76, 175, 80, 0.2);
+                        border: 1px solid rgba(76, 175, 80, 0.3);
+                        border-radius: 15px;
+                        padding: 15px;
+                        margin: 20px 0;
+                        text-align: left;
+                        backdrop-filter: blur(10px);
+                    }
+                    
+                    .ai-response h4 {
+                        color: #4CAF50;
+                        margin: 0 0 10px 0;
+                        font-size: 1rem;
+                    }
+                    
+                    .ai-response p {
+                        color: white;
+                        margin: 0;
+                        line-height: 1.4;
+                    }
                 </style>
             </head>
             <body>
@@ -146,6 +170,11 @@ class WebAssistant:
                     </button>
                     <div id="status" class="status">Click to speak</div>
                     <div id="memoryCount" class="memory-count">0 memories stored</div>
+                    
+                    <div id="aiResponse" class="ai-response" style="display: none;">
+                        <h4>🤖 MyAssistant says:</h4>
+                        <p></p>
+                    </div>
                     
                     <div id="recentMemories" class="recent-memories" style="display: none;">
                         <h3>Recent Memories:</h3>
@@ -185,6 +214,12 @@ class WebAssistant:
                         } else if (data.type === 'memory_stored') {
                             document.getElementById('status').textContent = 'Memory stored!';
                             document.getElementById('memoryCount').textContent = `${data.count} memories stored`;
+                            
+                            // Show AI response if available
+                            if (data.ai_response) {
+                                showAIResponse(data.ai_response);
+                            }
+                            
                             showRecentMemories(data.recent);
                         } else if (data.type === 'error') {
                             document.getElementById('status').textContent = data.message;
@@ -204,6 +239,18 @@ class WebAssistant:
                                 </div>
                             `).join('');
                         }
+                    }
+                    
+                    function showAIResponse(response) {
+                        const aiResponseDiv = document.getElementById('aiResponse');
+                        const responseText = aiResponseDiv.querySelector('p');
+                        responseText.textContent = response;
+                        aiResponseDiv.style.display = 'block';
+                        
+                        // Hide after 10 seconds
+                        setTimeout(() => {
+                            aiResponseDiv.style.display = 'none';
+                        }, 10000);
                     }
 
                     async function toggleRecording() {
@@ -350,6 +397,9 @@ class WebAssistant:
             sample_text = "Sample memory from voice input"
             memory_id = self.store.remember(sample_text)
             
+            # Get AI response
+            ai_response = self.ai_system.get_response(sample_text, "en")
+            
             # Get updated count and recent memories
             memories = self.store.list_recent(limit=10)
             recent_memories = [
@@ -366,7 +416,8 @@ class WebAssistant:
                 "type": "memory_stored",
                 "message": "Memory stored successfully!",
                 "count": len(memories),
-                "recent": recent_memories
+                "recent": recent_memories,
+                "ai_response": ai_response
             }))
             
         except Exception as e:
