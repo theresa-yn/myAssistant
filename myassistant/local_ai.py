@@ -28,15 +28,19 @@ class LocalAI:
         if self._is_greeting(message_lower):
             return self._handle_greeting()
         
-        # Check if it's a question
+        # Check if it's a question - PRIORITY: answer from memories
         if self._is_question(message_lower):
-            return self._answer_question(user_message, memory_store)
+            answer = self._answer_question(user_message, memory_store)
+            # If we got a proper answer from memories, return it
+            if "Based on what you told me" in answer or "I found this related information" in answer:
+                return answer
+            # If no memory answer, don't repeat the question
         
         # Check if it's a statement (storing information)
         if self._is_statement(message_lower):
             return self._handle_statement(user_message)
         
-        # Default response
+        # For unclear messages, try to find relevant memories first
         return self._default_response(user_message, memory_store)
     
     def _is_greeting(self, message: str) -> bool:
@@ -72,33 +76,65 @@ class LocalAI:
     
     def _answer_question(self, question: str, memory_store: MemoryStore) -> str:
         """Answer questions using stored memories"""
-        try:
-            # Search for relevant memories
-            memory_results = memory_store.ask(question, limit=5)
-            
-            if memory_results:
-                # Found relevant memories
-                memory, score = memory_results[0]
-                return f"Based on what you told me: {memory.text}"
-        except Exception as e:
-            print(f"Memory search error: {e}")
+        # Clean the question for better matching
+        question_clean = re.sub(r'[^\w\s]', ' ', question.lower())
+        question_words = set(re.findall(r'\b\w+\b', question_clean))
         
-        # Search recent memories if no specific matches or if search failed
+        # Remove common question words to focus on content
+        question_words.discard('what')
+        question_words.discard('who')
+        question_words.discard('when')
+        question_words.discard('where')
+        question_words.discard('why')
+        question_words.discard('how')
+        question_words.discard('which')
+        question_words.discard('whose')
+        question_words.discard('is')
+        question_words.discard('are')
+        question_words.discard('do')
+        question_words.discard('does')
+        question_words.discard('can')
+        question_words.discard('could')
+        question_words.discard('would')
+        question_words.discard('will')
+        
+        # Search recent memories for word matches
         try:
-            recent_memories = memory_store.list_recent(limit=5)
+            recent_memories = memory_store.list_recent(limit=10)
             if recent_memories:
-                # Try to find partial matches
-                question_words = set(re.findall(r'\b\w+\b', question.lower()))
+                best_match = None
+                best_score = 0
                 
                 for memory in recent_memories:
-                    memory_words = set(re.findall(r'\b\w+\b', memory.text.lower()))
-                    if question_words.intersection(memory_words):
-                        return f"Based on what you told me: {memory.text}"
+                    memory_clean = re.sub(r'[^\w\s]', ' ', memory.text.lower())
+                    memory_words = set(re.findall(r'\b\w+\b', memory_clean))
+                    
+                    # Calculate match score
+                    common_words = question_words.intersection(memory_words)
+                    score = len(common_words)
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_match = memory
                 
-                # If no word matches, return the most recent memory
-                return f"Based on what you told me: {recent_memories[0].text}"
+                # If we found a good match, return it
+                if best_match and best_score > 0:
+                    return f"Based on what you told me: {best_match.text}"
+                
+                # If no good match, try FTS5 search as fallback
+                try:
+                    memory_results = memory_store.ask(question, limit=3)
+                    if memory_results:
+                        memory, score = memory_results[0]
+                        return f"Based on what you told me: {memory.text}"
+                except Exception as e:
+                    print(f"FTS5 search error: {e}")
+                
+                # Last resort: return most recent memory if it seems relevant
+                if recent_memories:
+                    return f"Based on what you told me: {recent_memories[0].text}"
         except Exception as e:
-            print(f"Recent memory search error: {e}")
+            print(f"Memory search error: {e}")
         
         # No relevant information found
         return "I don't have that information in my memory. Could you tell me about it?"
@@ -116,23 +152,52 @@ class LocalAI:
     
     def _default_response(self, message: str, memory_store: MemoryStore) -> str:
         """Default response for unclear messages"""
+        # Try to find any relevant memories using word matching
         try:
-            # Try to find any relevant memories
-            memory_results = memory_store.ask(message, limit=1)
-            
-            if memory_results:
-                memory, score = memory_results[0]
-                return f"I found this related information: {memory.text}. Is this what you're looking for?"
-        except Exception as e:
-            print(f"Default response memory search error: {e}")
-        
-        # Get recent memories for context
-        try:
-            recent_memories = memory_store.list_recent(limit=2)
+            recent_memories = memory_store.list_recent(limit=5)
             if recent_memories:
-                return f"I'm not sure what you mean. I have {len(recent_memories)} recent memories. Could you be more specific?"
+                # Clean the message for better matching
+                message_clean = re.sub(r'[^\w\s]', ' ', message.lower())
+                message_words = set(re.findall(r'\b\w+\b', message_clean))
+                
+                # Remove common words
+                message_words.discard('the')
+                message_words.discard('a')
+                message_words.discard('an')
+                message_words.discard('and')
+                message_words.discard('or')
+                message_words.discard('but')
+                message_words.discard('in')
+                message_words.discard('on')
+                message_words.discard('at')
+                message_words.discard('to')
+                message_words.discard('for')
+                message_words.discard('of')
+                message_words.discard('with')
+                message_words.discard('by')
+                
+                # Find best matching memory
+                best_match = None
+                best_score = 0
+                
+                for memory in recent_memories:
+                    memory_clean = re.sub(r'[^\w\s]', ' ', memory.text.lower())
+                    memory_words = set(re.findall(r'\b\w+\b', memory_clean))
+                    
+                    common_words = message_words.intersection(memory_words)
+                    score = len(common_words)
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_match = memory
+                
+                if best_match and best_score > 0:
+                    return f"I found this related information: {best_match.text}. Is this what you're looking for?"
+                
+                # If no good match, just mention we have memories
+                return f"I have {len(recent_memories)} memories stored. Could you be more specific about what you're looking for?"
         except Exception as e:
-            print(f"Default response recent memory error: {e}")
+            print(f"Default response error: {e}")
         
         return "I'm here to help! You can tell me information to remember, or ask me questions about what you've shared."
     
