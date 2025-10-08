@@ -743,10 +743,10 @@ class WebAssistant:
         
         @self.app.post("/chatgpt/test")
         async def test_chatgpt(message: dict):
-            """Test ChatGPT integration"""
+            """Test ChatGPT integration with memories"""
             try:
                 user_message = message.get("message", "Hello")
-                response = self.chatgpt.get_response(user_message)
+                response = self.chatgpt.get_response(user_message, self.store)
                 return {"response": response, "status": "success"}
             except Exception as e:
                 return {"response": f"Error: {str(e)}", "status": "error"}
@@ -827,9 +827,9 @@ class WebAssistant:
             memory_id = self.store.remember(audio_data)
             print(f"Stored memory with ID: {memory_id}, Text: {audio_data}")
             
-            # Get ChatGPT response
+            # Get ChatGPT response using stored memories
             try:
-                ai_response = self.chatgpt.get_response(audio_data)
+                ai_response = self.chatgpt.get_response(audio_data, self.store)
                 print(f"ChatGPT response: {ai_response}")
             except Exception as e:
                 print(f"ChatGPT response error: {e}")

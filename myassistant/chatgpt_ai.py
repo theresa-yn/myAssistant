@@ -21,32 +21,62 @@ class ChatGPTAssistant:
         else:
             print("OPENAI_API_KEY not found. Please set your API key in .env file")
     
-    def get_response(self, user_message: str) -> str:
+    def get_response(self, user_message: str, memory_store=None) -> str:
         """
-        Get response from ChatGPT
+        Get response from ChatGPT using stored memories
         """
         if not self.client:
             return "I'm sorry, but I need an OpenAI API key to work. Please set OPENAI_API_KEY in your .env file."
         
         try:
+            # Get relevant memories for context
+            memory_context = ""
+            if memory_store:
+                # Search for relevant memories based on the user's question
+                memory_results = memory_store.ask(user_message, limit=5)
+                if memory_results:
+                    memory_context = "Here are relevant memories from the user:\n"
+                    for memory, score in memory_results:
+                        memory_context += f"- {memory.text}\n"
+                else:
+                    # If no specific matches, get recent memories
+                    recent_memories = memory_store.list_recent(limit=3)
+                    if recent_memories:
+                        memory_context = "Here are recent memories from the user:\n"
+                        for memory in recent_memories:
+                            memory_context += f"- {memory.text}\n"
+            
+            # Create system message with memory context
+            system_content = """You are MyAssistant, a helpful AI assistant with access to the user's personal memories.
+
+CRITICAL INSTRUCTIONS:
+1. ALWAYS answer questions based on the memories provided below
+2. If the user asks a question, look through the memories to find the answer
+3. If you find relevant information in the memories, respond with: "Based on what you told me: [exact information from memory]"
+4. If you don't find relevant information in the memories, say: "I don't have that information in my memory"
+5. Do NOT repeat the user's question back to them
+6. Be helpful and conversational, but always base your answers on the stored memories
+7. Keep responses concise and direct
+
+""" + (memory_context if memory_context else "No memories available yet.")
+
+            system_message = {
+                "role": "system", 
+                "content": system_content
+            }
+            
             # Add user message to conversation history
             self.conversation_history.append({"role": "user", "content": user_message})
             
-            # Create system message for context
-            system_message = {
-                "role": "system", 
-                "content": """You are MyAssistant, a helpful AI assistant. You can help users remember things, answer questions, and assist with various tasks. Be friendly, helpful, and conversational like ChatGPT. Keep responses concise but informative."""
-            }
-            
             # Prepare messages for ChatGPT
-            messages = [system_message] + self.conversation_history[-10:]  # Keep last 10 messages for context
+            messages = [system_message] + self.conversation_history[-5:]  # Keep last 5 messages for context
             
             # Get response from ChatGPT
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",  # Using GPT-3.5 for cost efficiency
                 messages=messages,
                 max_tokens=200,
-                temperature=0.7
+                temperature=0.3  # Lower temperature for more consistent, memory-based responses
             )
             
             # Extract response
