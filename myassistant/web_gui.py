@@ -182,6 +182,33 @@ class WebAssistant:
                         background: rgba(255, 193, 7, 0.3);
                         transform: translateY(-1px);
                     }
+                    
+                    .language-selector {
+                        margin: 15px 0;
+                        text-align: center;
+                    }
+                    
+                    .language-selector label {
+                        color: rgba(255, 255, 255, 0.8);
+                        font-size: 0.9rem;
+                        margin-right: 10px;
+                    }
+                    
+                    .language-selector select {
+                        background: rgba(255, 255, 255, 0.1);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 8px;
+                        color: white;
+                        padding: 6px 12px;
+                        font-size: 0.9rem;
+                        cursor: pointer;
+                    }
+                    
+                    .language-selector select:focus {
+                        outline: none;
+                        border-color: #4CAF50;
+                        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+                    }
                 </style>
             </head>
             <body>
@@ -194,6 +221,15 @@ class WebAssistant:
                     </button>
                     <div id="status" class="status">Click to speak</div>
                     <div id="memoryCount" class="memory-count">0 memories stored</div>
+                    
+                    <div class="language-selector">
+                        <label for="languageSelect">🌐 Language:</label>
+                        <select id="languageSelect" onchange="changeLanguage()">
+                            <option value="vi-VN">🇻🇳 Tiếng Việt</option>
+                            <option value="en-US">🇺🇸 English</option>
+                        </select>
+                    </div>
+                    
                     <button id="testSpeech" class="test-speech-btn" onclick="testSpeech()">🔊 Test Speech</button>
                     
                     <div id="aiResponse" class="ai-response" style="display: none;">
@@ -272,8 +308,9 @@ class WebAssistant:
                         responseText.textContent = response;
                         aiResponseDiv.style.display = 'block';
                         
-                        // Speak the AI response
-                        speakText(response);
+                        // Speak the AI response with proper language
+                        const currentLang = document.getElementById('languageSelect').value;
+                        speakWithLanguage(response, currentLang);
                         
                         // Add click to dismiss functionality
                         aiResponseDiv.onclick = function() {
@@ -294,28 +331,41 @@ class WebAssistant:
                             speechSynthesis.cancel();
                             
                             const utterance = new SpeechSynthesisUtterance(text);
-                            utterance.rate = 0.9;
-                            utterance.pitch = 1;
-                            utterance.volume = 0.8;
+                            utterance.rate = 0.85;  // Slightly slower for clarity
+                            utterance.pitch = 1.1;  // Slightly higher pitch like Siri
+                            utterance.volume = 1.0; // Maximum volume
                             
                             // Wait for voices to load if needed
                             const speakWithVoice = () => {
                                 const voices = speechSynthesis.getVoices();
                                 console.log('Available voices:', voices.length);
                                 
-                                // Try to use a female voice if available
-                                const femaleVoice = voices.find(voice => 
-                                    voice.name.includes('Female') || 
-                                    voice.name.includes('Samantha') || 
-                                    voice.name.includes('Karen') ||
-                                    voice.name.includes('Victoria') ||
-                                    voice.name.includes('Google UK English Female') ||
-                                    voice.name.includes('Microsoft Zira Desktop')
-                                );
+                                // Try to use a Siri-like voice (prioritize high-quality voices)
+                                const preferredVoices = [
+                                    'Samantha',           // macOS Siri-like voice
+                                    'Karen',             // macOS female voice
+                                    'Victoria',          // macOS female voice
+                                    'Alex',              // macOS male voice
+                                    'Google UK English Female',  // Chrome
+                                    'Microsoft Zira Desktop',    // Edge
+                                    'Microsoft Hazel Desktop',   // Edge
+                                    'Google US English Female',  // Chrome
+                                    'Female',            // Generic female
+                                    'Samantha Enhanced', // Enhanced version
+                                    'Karen Enhanced'     // Enhanced version
+                                ];
                                 
-                                if (femaleVoice) {
-                                    utterance.voice = femaleVoice;
-                                    console.log('Using voice:', femaleVoice.name);
+                                let selectedVoice = null;
+                                for (const voiceName of preferredVoices) {
+                                    selectedVoice = voices.find(voice => 
+                                        voice.name.includes(voiceName)
+                                    );
+                                    if (selectedVoice) break;
+                                }
+                                
+                                if (selectedVoice) {
+                                    utterance.voice = selectedVoice;
+                                    console.log('Using voice:', selectedVoice.name);
                                 } else {
                                     console.log('Using default voice');
                                 }
@@ -354,7 +404,7 @@ class WebAssistant:
                             
                             recognition.continuous = false;
                             recognition.interimResults = false;
-                            recognition.lang = 'en-US';
+                            recognition.lang = 'vi-VN'; // Vietnamese (Vietnam)
 
                             recognition.onstart = function() {
                                 console.log('Speech recognition started');
@@ -425,7 +475,79 @@ class WebAssistant:
 
                     function testSpeech() {
                         console.log('Testing speech synthesis...');
-                        speakText("Hello! This is a test of the speech synthesis. Can you hear me?");
+                        const currentLang = document.getElementById('languageSelect').value;
+                        if (currentLang === 'vi-VN') {
+                            speakWithLanguage("Xin chào! Đây là bài kiểm tra chức năng phát âm. Bạn có nghe thấy tôi không?", 'vi-VN');
+                        } else {
+                            speakWithLanguage("Hello! This is a test of the speech synthesis. Can you hear me?", 'en-US');
+                        }
+                    }
+
+                    function changeLanguage() {
+                        const selectedLang = document.getElementById('languageSelect').value;
+                        console.log('Language changed to:', selectedLang);
+                        
+                        // Update speech recognition language
+                        if (recognition) {
+                            recognition.lang = selectedLang;
+                        }
+                        
+                        // Update status text based on language
+                        if (selectedLang === 'vi-VN') {
+                            document.getElementById('status').textContent = 'Nhấn để nói';
+                        } else {
+                            document.getElementById('status').textContent = 'Click to speak';
+                        }
+                    }
+
+                    function speakWithLanguage(text, language) {
+                        if ('speechSynthesis' in window) {
+                            console.log('Speaking with language:', language);
+                            
+                            // Stop any current speech
+                            speechSynthesis.cancel();
+                            
+                            const utterance = new SpeechSynthesisUtterance(text);
+                            utterance.rate = 0.85;  // Slightly slower for clarity
+                            utterance.pitch = 1.1;  // Slightly higher pitch like Siri
+                            utterance.volume = 1.0; // Maximum volume
+                            utterance.lang = language; // Set language
+                            
+                            // Wait for voices to load if needed
+                            const speakWithVoice = () => {
+                                const voices = speechSynthesis.getVoices();
+                                console.log('Available voices for', language, ':', voices.length);
+                                
+                                // Find voice for the specific language
+                                const languageVoices = voices.filter(voice => 
+                                    voice.lang.startsWith(language.split('-')[0])
+                                );
+                                
+                                if (languageVoices.length > 0) {
+                                    // Use the first available voice for the language
+                                    utterance.voice = languageVoices[0];
+                                    console.log('Using language-specific voice:', languageVoices[0].name);
+                                } else {
+                                    console.log('No language-specific voice found, using default');
+                                }
+                                
+                                utterance.onstart = () => console.log('Speech started');
+                                utterance.onend = () => console.log('Speech ended');
+                                utterance.onerror = (event) => console.error('Speech error:', event.error);
+                                
+                                speechSynthesis.speak(utterance);
+                            };
+                            
+                            // If voices are already loaded, speak immediately
+                            if (speechSynthesis.getVoices().length > 0) {
+                                speakWithVoice();
+                            } else {
+                                // Wait for voices to load
+                                speechSynthesis.onvoiceschanged = speakWithVoice;
+                            }
+                        } else {
+                            console.error('Speech synthesis not supported');
+                        }
                     }
 
                     // Initialize
