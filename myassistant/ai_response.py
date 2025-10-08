@@ -43,31 +43,19 @@ class AIResponseSystem:
                 context += f"\n\nRelevant memories for your question:\n{relevant_memories}"
                 print(f"AI Context - Found {len(search_results)} relevant memories")
             
-            # Create system prompt with reminder capabilities
-            system_prompt = f"""You are MyAssistant, a helpful AI assistant with access to the user's personal memories and tasks. 
+            # Create simple, direct system prompt
+            system_prompt = f"""You are MyAssistant. You have access to these memories:
 
-Available memories:
 {context}
 
-CRITICAL INSTRUCTIONS:
-1. **ALWAYS answer questions based on the memories provided above**
-2. **Pay attention to CONTEXT - distinguish between different meanings of words**
-3. **"My sister" = family member, "Sister [Name]" = religious title**
-4. **"My sister's number" = phone number, not room number**
-5. **Be specific and reference exact details from the memories**
-6. **If you find relevant information, say "Based on what you told me..." or "I remember you said..."**
-7. **If no relevant memories are found, say "I don't have any information about that in my memory"**
-8. **Be friendly and conversational**
-9. **Keep responses concise but informative**
+INSTRUCTIONS:
+1. If the user asks a question, look through the memories above to find the answer
+2. If you find relevant information, respond with: "Based on what you told me: [exact information from memory]"
+3. If you don't find relevant information, respond with: "I don't have that information in my memory"
+4. Keep responses short and direct
+5. Always quote the exact text from the memories
 
-Examples of good responses:
-- User: "What meetings do I have?" → "Based on what you told me, you have a meeting tomorrow at 3 PM with the marketing team."
-- User: "What's my sister's phone number?" → "Based on what you told me, your sister's phone number is 555-1234."
-- User: "What did I say about my project?" → "I remember you said you need to finish the project by Friday and it's about the new website design."
-- User: "Tell me about my appointments" → "I don't have any information about appointments in my memory. You can tell me about them and I'll remember!"
-- User: "What's Sister Cabrini's room number?" → "Based on what you told me, Sister Cabrini is in Room 259N on the second floor."
-
-User message: {user_message}"""
+User question: {user_message}"""
 
             # Get AI response
             response = self.client.chat.completions.create(
@@ -156,30 +144,13 @@ User message: {user_message}"""
             elif any(word in message_lower for word in ["how are you", "how are you doing"]):
                 return "I'm doing great! I'm here to help you remember and organize your thoughts."
             elif any(word in message_lower for word in ["what", "who", "when", "where", "why", "how"]):
-                # Search for relevant memories when user asks questions
-                memory_results = self.memory_store.ask(user_message, limit=5)
+                # Simple search for relevant memories
+                memory_results = self.memory_store.ask(user_message, limit=3)
                 if memory_results:
-                    # Look for the most relevant memory based on context
-                    best_match = None
-                    for memory, score in memory_results:
-                        memory_lower = memory.text.lower()
-                        # Check for context clues
-                        if "my sister" in message_lower and ("phone" in memory_lower or "number" in memory_lower):
-                            best_match = memory
-                            break
-                        elif "sister" in message_lower and "room" in memory_lower:
-                            best_match = memory
-                            break
-                        elif score > 0.5:  # Good relevance score
-                            best_match = memory
-                            break
-                    
-                    if best_match:
-                        return f"Based on what you told me: {best_match.text}"
-                    else:
-                        return f"Based on what you told me: {memory_results[0][0].text}"
+                    memory, score = memory_results[0]
+                    return f"Based on what you told me: {memory.text}"
                 else:
-                    return "I don't have any information about that in my memory. You can tell me about it and I'll remember!"
+                    return "I don't have that information in my memory"
             elif any(word in message_lower for word in ["remember", "remind", "recall"]):
                 # Look for reminder-related memories
                 memory_results = self.memory_store.ask(user_message, limit=5)
@@ -196,13 +167,13 @@ User message: {user_message}"""
             elif any(word in message_lower for word in ["goodbye", "bye", "see you"]):
                 return "Goodbye! I'll be here whenever you need to remember something or ask a question."
             else:
-                # Search through memories for relevant information and reminders
+                # Simple search for relevant information
                 memory_results = self.memory_store.ask(user_message, limit=3)
                 if memory_results:
                     memory, score = memory_results[0]
                     return f"Based on what you told me: {memory.text}"
                 else:
-                    return "I've stored that information! Is there anything specific you'd like to know about your memories?"
+                    return "I've stored that information! What would you like to know?"
     
     def _get_relevant_reminders(self, user_message: str) -> str:
         """
