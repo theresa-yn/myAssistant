@@ -277,6 +277,7 @@ class WebAssistant:
                         <textarea id="textInput" class="text-input" placeholder="Type your information here..."></textarea>
                         <button id="submitText" class="submit-btn" onclick="submitText()">Add Information</button>
                     </div>
+                    
                     <!-- Hidden elements for functionality -->
                     <div id="status" class="status" style="display: none;">Click to speak</div>
                     <div id="memoryCount" class="memory-count" style="display: none;">0 memories stored</div>
@@ -612,17 +613,6 @@ class WebAssistant:
                         }
                     }
 
-                    // Allow Enter key to submit text
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const textInput = document.getElementById('textInput');
-                        textInput.addEventListener('keydown', function(event) {
-                            if (event.key === 'Enter' && !event.shiftKey) {
-                                event.preventDefault();
-                                submitText();
-                            }
-                        });
-                    });
-
                     function changeLanguage() {
                         const selectedLang = document.getElementById('languageSelect').value;
                         console.log('Language changed to:', selectedLang);
@@ -694,6 +684,19 @@ class WebAssistant:
                     connectWebSocket();
                     
                     // Load initial memory count
+                    
+                    // Allow Enter key to submit text
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const textInput = document.getElementById('textInput');
+                        if (textInput) {
+                            textInput.addEventListener('keydown', function(event) {
+                                if (event.key === 'Enter' && !event.shiftKey) {
+                                    event.preventDefault();
+                                    submitText();
+                                }
+                            });
+                        }
+                    });
                     fetch('/memories/count')
                         .then(response => response.json())
                         .then(data => {
