@@ -233,6 +233,7 @@ class WebAssistant:
                     
                     <button id="testSpeech" class="test-speech-btn" onclick="testSpeech()" style="display: none;">🔊 Test Speech</button>
                     <button id="testAIResponse" class="test-speech-btn" onclick="testAIResponse()" style="display: none;">🤖 Test AI Response</button>
+                    <button id="testMemory" class="test-speech-btn" onclick="testMemory()" style="display: block; position: fixed; top: 10px; right: 10px; z-index: 1000;">🧠 Test Memory</button>
                     
                     <!-- AI response will show temporarily when speaking -->
                     <div id="aiResponse" class="ai-response" style="display: none;">
@@ -505,6 +506,26 @@ class WebAssistant:
                         showAIResponse(testResponse);
                     }
 
+                    function testMemory() {
+                        console.log('Testing memory system...');
+                        fetch('/memories/test')
+                            .then(response => response.json())
+                            .then(data => {
+                                console.log('Memory test result:', data);
+                                let message = `Memory Test Results:\n`;
+                                message += `Status: ${data.status}\n`;
+                                message += `Total Memories: ${data.total_memories}\n`;
+                                if (data.recent_memories && data.recent_memories.length > 0) {
+                                    message += `Recent: ${data.recent_memories[0].text}\n`;
+                                }
+                                showAIResponse(message);
+                            })
+                            .catch(error => {
+                                console.error('Memory test error:', error);
+                                showAIResponse('Memory test failed: ' + error.message);
+                            });
+                    }
+
                     function changeLanguage() {
                         const selectedLang = document.getElementById('languageSelect').value;
                         console.log('Language changed to:', selectedLang);
@@ -608,6 +629,29 @@ class WebAssistant:
         async def get_memory_count():
             memories = self.store.list_recent(limit=1000)
             return {"count": len(memories)}
+        
+        @self.app.get("/memories/test")
+        async def test_memories():
+            """Test endpoint to check if memories are working"""
+            try:
+                # Test storing a memory
+                test_id = self.store.remember("Test memory from API")
+                
+                # Test retrieving memories
+                memories = self.store.list_recent(limit=5)
+                
+                # Test searching memories
+                search_results = self.store.ask("test", limit=3)
+                
+                return {
+                    "status": "success",
+                    "test_memory_id": test_id,
+                    "total_memories": len(memories),
+                    "recent_memories": [{"id": m.id, "text": m.text, "created_at": m.created_at} for m in memories[:3]],
+                    "search_results": [{"id": m.id, "text": m.text, "score": score} for m, score in search_results]
+                }
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
 
         @self.app.get("/memories/recent")
         async def get_recent_memories():
@@ -660,10 +704,14 @@ class WebAssistant:
             
             # Store the actual transcribed text
             memory_id = self.store.remember(audio_data)
+            print(f"Stored memory with ID: {memory_id}, Text: {audio_data}")
             
             # Get AI response (with error handling)
             try:
-                ai_response = self.ai_system.get_response(audio_data, "en")
+                # Use the detected language from the client
+                current_lang = "en"  # Default to English
+                ai_response = self.ai_system.get_response(audio_data, current_lang)
+                print(f"AI response: {ai_response}")
             except Exception as e:
                 print(f"AI response error: {e}")
                 ai_response = "I've stored that information! Thanks for sharing with me."
