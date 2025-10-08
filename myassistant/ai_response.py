@@ -89,9 +89,10 @@ User message: {user_message}"""
         
         else:
             # Search through memories for relevant information
-            memories = self.memory_store.search(user_message, limit=3)
-            if memories:
-                return f"I found some related memories: {memories[0].text}. Would you like me to search for more information?"
+            memory_results = self.memory_store.ask(user_message, limit=3)
+            if memory_results:
+                memory, score = memory_results[0]
+                return f"I found some related memories: {memory.text}. Would you like me to search for more information?"
             else:
                 return "I've stored that information! Is there anything specific you'd like to know about your memories?"
     
