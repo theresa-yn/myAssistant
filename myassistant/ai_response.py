@@ -43,28 +43,36 @@ class AIResponseSystem:
                 context += f"\n\nRelevant memories for your question:\n{relevant_memories}"
                 print(f"AI Context - Found {len(search_results)} relevant memories")
             
-            # Create simple, direct system prompt
-            system_prompt = f"""You are MyAssistant. You have access to these memories:
+            # Create ChatGPT-like system prompt
+            system_prompt = f"""You are MyAssistant, an intelligent AI assistant similar to ChatGPT. You have access to the user's personal memories and can help with various tasks.
 
+User's stored memories:
 {context}
 
-INSTRUCTIONS:
-1. If the user asks a question, look through the memories above to find the answer
-2. If you find relevant information, respond with: "Based on what you told me: [exact information from memory]"
-3. If you don't find relevant information, respond with: "I don't have that information in my memory"
-4. Keep responses short and direct
-5. Always quote the exact text from the memories
+Your capabilities:
+- Answer questions based on the user's memories
+- Provide helpful, conversational responses
+- Be intelligent and understanding like ChatGPT
+- Help with planning, reminders, and information recall
+- Be friendly, helpful, and engaging
 
-User question: {user_message}"""
+Guidelines:
+- If the user asks about something in their memories, provide a helpful answer based on that information
+- If you don't have relevant information, say so politely and offer to help in other ways
+- Be conversational and natural, like ChatGPT
+- Provide context and be helpful, not just robotic responses
+- If the user is asking for information you don't have, suggest they tell you about it
 
-            # Get AI response
+User message: {user_message}"""
+
+            # Get AI response using GPT-4 for better ChatGPT-like responses
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4",  # Use GPT-4 for better responses
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
                 ],
-                max_tokens=150,
+                max_tokens=200,  # Allow longer responses
                 temperature=0.7
             )
             
@@ -139,18 +147,18 @@ User question: {user_message}"""
             if any(word in message_lower for word in ["hello", "hi", "hey"]):
                 # Check for reminders when greeting
                 reminders = self._get_relevant_reminders(user_message)
-                base_response = "Hello! I'm MyAssistant. I can help you remember things and answer questions!"
+                base_response = "Hello! I'm MyAssistant, your personal AI assistant. I can help you remember things, answer questions, and assist with various tasks. How can I help you today?"
                 return base_response + (" " + reminders if reminders else "")
             elif any(word in message_lower for word in ["how are you", "how are you doing"]):
-                return "I'm doing great! I'm here to help you remember and organize your thoughts."
+                return "I'm doing great, thank you for asking! I'm here and ready to help you with whatever you need. Is there anything specific I can assist you with today?"
             elif any(word in message_lower for word in ["what", "who", "when", "where", "why", "how"]):
-                # Simple search for relevant memories
+                # Search for relevant memories
                 memory_results = self.memory_store.ask(user_message, limit=3)
                 if memory_results:
                     memory, score = memory_results[0]
-                    return f"Based on what you told me: {memory.text}"
+                    return f"Based on what you've told me before: {memory.text}. Is there anything else you'd like to know about this?"
                 else:
-                    return "I don't have that information in my memory"
+                    return "I don't have that specific information in my memory yet. Feel free to tell me about it, and I'll remember it for future reference!"
             elif any(word in message_lower for word in ["remember", "remind", "recall"]):
                 # Look for reminder-related memories
                 memory_results = self.memory_store.ask(user_message, limit=5)
@@ -161,19 +169,19 @@ User question: {user_message}"""
                             reminders.append(f"- {memory.text}")
                     if reminders:
                         return f"Here are some things I can remind you about:\n" + "\n".join(reminders)
-                return "I can help you remember things! I store everything you tell me, and you can search through your memories anytime."
+                return "I'd be happy to help you remember things! I store everything you tell me, and you can ask me about your memories anytime. What would you like me to help you remember?"
             elif any(word in message_lower for word in ["thank", "thanks"]):
-                return "You're welcome! I'm happy to help you remember and organize your thoughts."
+                return "You're very welcome! I'm always happy to help. Is there anything else I can assist you with?"
             elif any(word in message_lower for word in ["goodbye", "bye", "see you"]):
-                return "Goodbye! I'll be here whenever you need to remember something or ask a question."
+                return "Goodbye! It was great talking with you. Feel free to come back anytime - I'll be here whenever you need help remembering something or have questions!"
             else:
-                # Simple search for relevant information
+                # Search for relevant information
                 memory_results = self.memory_store.ask(user_message, limit=3)
                 if memory_results:
                     memory, score = memory_results[0]
-                    return f"Based on what you told me: {memory.text}"
+                    return f"Based on what you've shared with me: {memory.text}. Would you like to know more about this or is there something else I can help you with?"
                 else:
-                    return "I've stored that information! What would you like to know?"
+                    return "I've stored that information for you! I'm here to help with whatever you need. What else can I assist you with today?"
     
     def _get_relevant_reminders(self, user_message: str) -> str:
         """
