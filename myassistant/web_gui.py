@@ -212,7 +212,7 @@ class WebAssistant:
                     
                     .text-input-container {
                         position: fixed;
-                        bottom: 20px;
+                        bottom: 220px; /* Move up to make room for smiler face */
                         left: 50%;
                         transform: translateX(-50%);
                         width: 90%;
