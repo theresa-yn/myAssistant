@@ -145,6 +145,13 @@ class WebAssistant:
                         margin: 20px 0;
                         text-align: left;
                         backdrop-filter: blur(10px);
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .ai-response:hover {
+                        background: rgba(76, 175, 80, 0.3);
+                        transform: translateY(-2px);
                     }
                     
                     .ai-response h4 {
@@ -174,6 +181,7 @@ class WebAssistant:
                     <div id="aiResponse" class="ai-response" style="display: none;">
                         <h4>🤖 MyAssistant says:</h4>
                         <p></p>
+                        <small style="color: rgba(255, 255, 255, 0.7); font-size: 0.8rem;">Click to dismiss</small>
                     </div>
                     
                     <div id="recentMemories" class="recent-memories" style="display: none;">
@@ -247,10 +255,15 @@ class WebAssistant:
                         responseText.textContent = response;
                         aiResponseDiv.style.display = 'block';
                         
-                        // Hide after 10 seconds
+                        // Add click to dismiss functionality
+                        aiResponseDiv.onclick = function() {
+                            aiResponseDiv.style.display = 'none';
+                        };
+                        
+                        // Hide after 30 seconds (increased from 10)
                         setTimeout(() => {
                             aiResponseDiv.style.display = 'none';
-                        }, 10000);
+                        }, 30000);
                     }
 
                     async function toggleRecording() {
