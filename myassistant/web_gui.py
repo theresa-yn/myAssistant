@@ -10,14 +10,14 @@ import uvicorn
 import os
 
 from .memory_store import MemoryStore
-from .chatgpt_ai import ChatGPTAssistant
+from .local_ai import LocalAI
 
 
 class WebAssistant:
     def __init__(self):
         self.app = FastAPI(title="MyAssistant Web", version="0.1.0")
         self.store = MemoryStore()
-        self.chatgpt = ChatGPTAssistant()
+        self.local_ai = LocalAI()
         self.active_connections: list[WebSocket] = []
         self.setup_routes()
         
@@ -292,7 +292,7 @@ class WebAssistant:
                     <button id="testSpeech" class="test-speech-btn" onclick="testSpeech()" style="display: none;">🔊 Test Speech</button>
                     <button id="testAIResponse" class="test-speech-btn" onclick="testAIResponse()" style="display: none;">🤖 Test AI Response</button>
                     <button id="testMemory" class="test-speech-btn" onclick="testMemory()" style="display: none; position: fixed; top: 10px; right: 10px; z-index: 1000;">🧠 Test Memory</button>
-                    <button id="testChatGPT" class="test-speech-btn" onclick="testChatGPT()" style="display: block; position: fixed; top: 10px; right: 10px; z-index: 1000;">🤖 Test ChatGPT</button>
+                    <button id="testLocalAI" class="test-speech-btn" onclick="testLocalAI()" style="display: block; position: fixed; top: 10px; right: 10px; z-index: 1000;">🧠 Test Local AI</button>
                     
                     <!-- AI response will show temporarily when speaking -->
                     <div id="aiResponse" class="ai-response" style="display: none;">
@@ -574,9 +574,9 @@ class WebAssistant:
                             });
                     }
 
-                    function testChatGPT() {
-                        console.log('Testing ChatGPT integration...');
-                        fetch('/chatgpt/test', {
+                    function testLocalAI() {
+                        console.log('Testing Local AI integration...');
+                        fetch('/local-ai/test', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -587,16 +587,16 @@ class WebAssistant:
                         })
                         .then(response => response.json())
                         .then(data => {
-                            console.log('ChatGPT test result:', data);
+                            console.log('Local AI test result:', data);
                             if (data.status === 'success') {
                                 showAIResponse(data.response);
                             } else {
-                                showAIResponse('ChatGPT test failed: ' + data.response);
+                                showAIResponse('Local AI test failed: ' + data.response);
                             }
                         })
                         .catch(error => {
-                            console.error('ChatGPT test error:', error);
-                            showAIResponse('ChatGPT test failed: ' + error.message);
+                            console.error('Local AI test error:', error);
+                            showAIResponse('Local AI test failed: ' + error.message);
                         });
                     }
 
@@ -741,12 +741,12 @@ class WebAssistant:
             memories = self.store.list_recent(limit=1000)
             return {"count": len(memories)}
         
-        @self.app.post("/chatgpt/test")
-        async def test_chatgpt(message: dict):
-            """Test ChatGPT integration with memories"""
+        @self.app.post("/local-ai/test")
+        async def test_local_ai(message: dict):
+            """Test Local AI integration with memories"""
             try:
                 user_message = message.get("message", "Hello")
-                response = self.chatgpt.get_response(user_message, self.store)
+                response = self.local_ai.get_response(user_message, self.store)
                 return {"response": response, "status": "success"}
             except Exception as e:
                 return {"response": f"Error: {str(e)}", "status": "error"}
@@ -827,12 +827,12 @@ class WebAssistant:
             memory_id = self.store.remember(audio_data)
             print(f"Stored memory with ID: {memory_id}, Text: {audio_data}")
             
-            # Get ChatGPT response using stored memories
+            # Get Local AI response using stored memories
             try:
-                ai_response = self.chatgpt.get_response(audio_data, self.store)
-                print(f"ChatGPT response: {ai_response}")
+                ai_response = self.local_ai.get_response(audio_data, self.store)
+                print(f"Local AI response: {ai_response}")
             except Exception as e:
-                print(f"ChatGPT response error: {e}")
+                print(f"Local AI response error: {e}")
                 ai_response = "I've stored that information! Thanks for sharing with me."
             
             # Get updated count and recent memories
