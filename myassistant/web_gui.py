@@ -192,8 +192,7 @@ class WebAssistant:
 
                 <script>
                     let isRecording = false;
-                    let mediaRecorder;
-                    let audioChunks = [];
+                    let recognition;
                     let ws;
 
                     // Connect to WebSocket
@@ -255,6 +254,9 @@ class WebAssistant:
                         responseText.textContent = response;
                         aiResponseDiv.style.display = 'block';
                         
+                        // Speak the AI response
+                        speakText(response);
+                        
                         // Add click to dismiss functionality
                         aiResponseDiv.onclick = function() {
                             aiResponseDiv.style.display = 'none';
@@ -266,6 +268,32 @@ class WebAssistant:
                         }, 30000);
                     }
 
+                    function speakText(text) {
+                        if ('speechSynthesis' in window) {
+                            // Stop any current speech
+                            speechSynthesis.cancel();
+                            
+                            const utterance = new SpeechSynthesisUtterance(text);
+                            utterance.rate = 0.9;
+                            utterance.pitch = 1;
+                            utterance.volume = 0.8;
+                            
+                            // Try to use a female voice if available
+                            const voices = speechSynthesis.getVoices();
+                            const femaleVoice = voices.find(voice => 
+                                voice.name.includes('Female') || 
+                                voice.name.includes('Samantha') || 
+                                voice.name.includes('Karen') ||
+                                voice.name.includes('Victoria')
+                            );
+                            if (femaleVoice) {
+                                utterance.voice = femaleVoice;
+                            }
+                            
+                            speechSynthesis.speak(utterance);
+                        }
+                    }
+
                     async function toggleRecording() {
                         if (!isRecording) {
                             await startRecording();
@@ -274,40 +302,63 @@ class WebAssistant:
                         }
                     }
 
-                    async function startRecording() {
-                        try {
-                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                            mediaRecorder = new MediaRecorder(stream);
-                            audioChunks = [];
+                    function initSpeechRecognition() {
+                        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                            recognition = new SpeechRecognition();
+                            
+                            recognition.continuous = false;
+                            recognition.interimResults = false;
+                            recognition.lang = 'en-US';
 
-                            mediaRecorder.ondataavailable = function(event) {
-                                audioChunks.push(event.data);
+                            recognition.onstart = function() {
+                                console.log('Speech recognition started');
+                                isRecording = true;
+                                const button = document.getElementById('micButton');
+                                button.classList.add('listening');
+                                document.getElementById('status').textContent = 'Listening...';
                             };
 
-                            mediaRecorder.onstop = function() {
-                                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                                sendAudio(audioBlob);
-                                stream.getTracks().forEach(track => track.stop());
+                            recognition.onresult = function(event) {
+                                const transcript = event.results[0][0].transcript;
+                                console.log('Speech recognized:', transcript);
+                                sendTranscript(transcript);
                             };
 
-                            mediaRecorder.start();
-                            isRecording = true;
-                            
-                            const button = document.getElementById('micButton');
-                            button.classList.add('listening');
-                            // Keep the video playing, just change the visual effect
-                            
-                            document.getElementById('status').textContent = 'Listening...';
-                            
-                        } catch (error) {
-                            console.error('Error accessing microphone:', error);
-                            document.getElementById('status').textContent = 'Microphone access denied';
+                            recognition.onerror = function(event) {
+                                console.error('Speech recognition error:', event.error);
+                                document.getElementById('status').textContent = 'Error: ' + event.error;
+                                stopRecording();
+                            };
+
+                            recognition.onend = function() {
+                                console.log('Speech recognition ended');
+                                stopRecording();
+                            };
+                        } else {
+                            console.error('Speech recognition not supported');
+                            document.getElementById('status').textContent = 'Speech recognition not supported in this browser';
+                        }
+                    }
+
+                    function startRecording() {
+                        if (!recognition) {
+                            initSpeechRecognition();
+                        }
+                        
+                        if (recognition && !isRecording) {
+                            try {
+                                recognition.start();
+                            } catch (error) {
+                                console.error('Error starting speech recognition:', error);
+                                document.getElementById('status').textContent = 'Error starting speech recognition';
+                            }
                         }
                     }
 
                     function stopRecording() {
-                        if (mediaRecorder && isRecording) {
-                            mediaRecorder.stop();
+                        if (recognition && isRecording) {
+                            recognition.stop();
                             isRecording = false;
                             
                             const button = document.getElementById('micButton');
@@ -318,17 +369,12 @@ class WebAssistant:
                         }
                     }
 
-                    function sendAudio(audioBlob) {
+                    function sendTranscript(transcript) {
                         if (ws && ws.readyState === WebSocket.OPEN) {
-                            const reader = new FileReader();
-                            reader.onload = function() {
-                                const base64Audio = reader.result.split(',')[1];
-                                ws.send(JSON.stringify({
-                                    type: 'audio',
-                                    data: base64Audio
-                                }));
-                            };
-                            reader.readAsDataURL(audioBlob);
+                            ws.send(JSON.stringify({
+                                type: 'audio',
+                                data: transcript
+                            }));
                         }
                     }
 
@@ -408,24 +454,22 @@ class WebAssistant:
     async def handle_audio_message(self, websocket: WebSocket, audio_data: str):
         """Handle audio data from the client"""
         try:
-            # For demo purposes, we'll simulate speech recognition
-            # In a real implementation, you'd process the audio_data here
             await websocket.send_text(json.dumps({
                 "type": "status",
                 "message": "Processing speech..."
             }))
             
-            # Simulate processing time
-            await asyncio.sleep(1)
+            # The audio_data should now contain the actual transcribed text
+            # from the Web Speech API on the client side
+            if not audio_data or audio_data.strip() == "":
+                audio_data = "I didn't catch that, could you try again?"
             
-            # For demo, we'll create a sample memory
-            # In reality, you'd use speech recognition on the audio_data
-            sample_text = "Sample memory from voice input"
-            memory_id = self.store.remember(sample_text)
+            # Store the actual transcribed text
+            memory_id = self.store.remember(audio_data)
             
             # Get AI response (with error handling)
             try:
-                ai_response = self.ai_system.get_response(sample_text, "en")
+                ai_response = self.ai_system.get_response(audio_data, "en")
             except Exception as e:
                 print(f"AI response error: {e}")
                 ai_response = "I've stored that information! Thanks for sharing with me."
