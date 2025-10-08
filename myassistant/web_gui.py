@@ -292,7 +292,7 @@ class WebAssistant:
                     
                     <button id="testSpeech" class="test-speech-btn" onclick="testSpeech()" style="display: none;">🔊 Test Speech</button>
                     <button id="testAIResponse" class="test-speech-btn" onclick="testAIResponse()" style="display: none;">🤖 Test AI Response</button>
-                    <button id="testMemory" class="test-speech-btn" onclick="testMemory()" style="display: block; position: fixed; top: 10px; right: 10px; z-index: 1000;">🧠 Test Memory</button>
+                    <button id="testMemory" class="test-speech-btn" onclick="testMemory()" style="display: none; position: fixed; top: 10px; right: 10px; z-index: 1000;">🧠 Test Memory</button>
                     
                     <!-- AI response will show temporarily when speaking -->
                     <div id="aiResponse" class="ai-response" style="display: none;">
