@@ -209,6 +209,58 @@ class WebAssistant:
                         border-color: #4CAF50;
                         box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
                     }
+                    
+                    .text-input-container {
+                        position: fixed;
+                        bottom: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 90%;
+                        max-width: 500px;
+                        z-index: 1000;
+                    }
+                    
+                    .text-input {
+                        width: 100%;
+                        height: 80px;
+                        background: rgba(255, 255, 255, 0.1);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 15px;
+                        color: white;
+                        padding: 15px;
+                        font-size: 16px;
+                        resize: vertical;
+                        backdrop-filter: blur(10px);
+                        box-sizing: border-box;
+                    }
+                    
+                    .text-input::placeholder {
+                        color: rgba(255, 255, 255, 0.6);
+                    }
+                    
+                    .text-input:focus {
+                        outline: none;
+                        border-color: #4CAF50;
+                        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+                    }
+                    
+                    .submit-btn {
+                        width: 100%;
+                        margin-top: 10px;
+                        background: rgba(76, 175, 80, 0.8);
+                        border: 1px solid rgba(76, 175, 80, 0.3);
+                        border-radius: 10px;
+                        color: white;
+                        padding: 12px 20px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .submit-btn:hover {
+                        background: rgba(76, 175, 80, 1);
+                        transform: translateY(-2px);
+                    }
                 </style>
             </head>
             <body>
@@ -219,6 +271,12 @@ class WebAssistant:
                             😊
                         </video>
                     </button>
+                    
+                    <!-- Text input box for adding information -->
+                    <div class="text-input-container">
+                        <textarea id="textInput" class="text-input" placeholder="Type your information here..."></textarea>
+                        <button id="submitText" class="submit-btn" onclick="submitText()">Add Information</button>
+                    </div>
                     <!-- Hidden elements for functionality -->
                     <div id="status" class="status" style="display: none;">Click to speak</div>
                     <div id="memoryCount" class="memory-count" style="display: none;">0 memories stored</div>
@@ -525,6 +583,45 @@ class WebAssistant:
                                 showAIResponse('Memory test failed: ' + error.message);
                             });
                     }
+
+                    function submitText() {
+                        const textInput = document.getElementById('textInput');
+                        const text = textInput.value.trim();
+                        
+                        if (!text) {
+                            showAIResponse('Please enter some text first!');
+                            return;
+                        }
+                        
+                        console.log('Submitting text:', text);
+                        
+                        // Send text via WebSocket (same as voice input)
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({
+                                type: 'audio',
+                                data: text
+                            }));
+                            
+                            // Clear the input
+                            textInput.value = '';
+                            
+                            // Show feedback
+                            showAIResponse('Processing your text...');
+                        } else {
+                            showAIResponse('Connection error. Please try again.');
+                        }
+                    }
+
+                    // Allow Enter key to submit text
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const textInput = document.getElementById('textInput');
+                        textInput.addEventListener('keydown', function(event) {
+                            if (event.key === 'Enter' && !event.shiftKey) {
+                                event.preventDefault();
+                                submitText();
+                            }
+                        });
+                    });
 
                     function changeLanguage() {
                         const selectedLang = document.getElementById('languageSelect').value;
