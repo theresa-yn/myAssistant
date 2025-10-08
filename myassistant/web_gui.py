@@ -285,8 +285,7 @@ class WebAssistant:
                     <div class="language-selector" style="display: none;">
                         <label for="languageSelect">🌐 Language:</label>
                         <select id="languageSelect" onchange="changeLanguage()">
-                            <option value="vi-VN">🇻🇳 Tiếng Việt</option>
-                            <option value="en-US">🇺🇸 English</option>
+                            <option value="en-US" selected>🇺🇸 English</option>
                         </select>
                     </div>
                     
@@ -474,7 +473,7 @@ class WebAssistant:
                             
                             recognition.continuous = false;
                             recognition.interimResults = false;
-                            recognition.lang = 'vi-VN'; // Vietnamese (Vietnam)
+                            recognition.lang = 'en-US'; // English (US)
 
                             recognition.onstart = function() {
                                 console.log('Speech recognition started');
@@ -545,23 +544,12 @@ class WebAssistant:
 
                     function testSpeech() {
                         console.log('Testing speech synthesis...');
-                        const currentLang = document.getElementById('languageSelect').value;
-                        if (currentLang === 'vi-VN') {
-                            speakWithLanguage("Xin chào! Đây là bài kiểm tra chức năng phát âm. Bạn có nghe thấy tôi không?", 'vi-VN');
-                        } else {
-                            speakWithLanguage("Hello! This is a test of the speech synthesis. Can you hear me?", 'en-US');
-                        }
+                        speakWithLanguage("Hello! This is a test of the speech synthesis. Can you hear me?", 'en-US');
                     }
 
                     function testAIResponse() {
                         console.log('Testing AI response speech...');
-                        const currentLang = document.getElementById('languageSelect').value;
-                        let testResponse;
-                        if (currentLang === 'vi-VN') {
-                            testResponse = "Xin chào! Tôi là MyAssistant. Tôi đã lưu thông tin của bạn và sẵn sàng trả lời câu hỏi!";
-                        } else {
-                            testResponse = "Hello! I'm MyAssistant. I've stored your information and I'm ready to answer questions!";
-                        }
+                        const testResponse = "Hello! I'm MyAssistant. I've stored your information and I'm ready to answer questions!";
                         showAIResponse(testResponse);
                     }
 
@@ -623,11 +611,7 @@ class WebAssistant:
                         }
                         
                         // Update status text based on language
-                        if (selectedLang === 'vi-VN') {
-                            document.getElementById('status').textContent = 'Nhấn để nói';
-                        } else {
-                            document.getElementById('status').textContent = 'Click to speak';
-                        }
+                        document.getElementById('status').textContent = 'Click to speak';
                     }
 
                     function speakWithLanguage(text, language) {
@@ -808,9 +792,8 @@ class WebAssistant:
             
             # Get AI response (with error handling)
             try:
-                # Use the detected language from the client
-                current_lang = "en"  # Default to English
-                ai_response = self.ai_system.get_response(audio_data, current_lang)
+                # Use English only
+                ai_response = self.ai_system.get_response(audio_data, "en")
                 print(f"AI response: {ai_response}")
             except Exception as e:
                 print(f"AI response error: {e}")
