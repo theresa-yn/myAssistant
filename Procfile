@@ -1,1 +1,1 @@
-web: assistant-web
+web: python start.py
