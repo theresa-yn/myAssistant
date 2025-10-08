@@ -384,13 +384,26 @@ class WebAssistant:
 
         @self.app.get("/smiler.mp4")
         async def get_smiler_video():
-            # Look for the video file in the current directory
-            video_path = "smiler.mp4"
-            if os.path.exists(video_path):
-                return FileResponse(video_path, media_type="video/mp4")
-            else:
-                # Return a 404 if file doesn't exist
-                return {"error": "smiler.mp4 not found"}
+            # Look for the video file in multiple possible locations
+            possible_paths = [
+                "smiler.mp4",
+                "./smiler.mp4",
+                "/app/smiler.mp4",
+                os.path.join(os.getcwd(), "smiler.mp4")
+            ]
+            
+            for video_path in possible_paths:
+                if os.path.exists(video_path):
+                    return FileResponse(video_path, media_type="video/mp4")
+            
+            # If not found, return a 404 with debug info
+            from fastapi import HTTPException
+            current_dir = os.getcwd()
+            files_in_dir = os.listdir(current_dir) if os.path.exists(current_dir) else []
+            raise HTTPException(
+                status_code=404, 
+                detail=f"smiler.mp4 not found. Current dir: {current_dir}, Files: {files_in_dir[:10]}"
+            )
 
     async def handle_audio_message(self, websocket: WebSocket, audio_data: str):
         """Handle audio data from the client"""
