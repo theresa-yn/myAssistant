@@ -165,6 +165,23 @@ class WebAssistant:
                         margin: 0;
                         line-height: 1.4;
                     }
+                    
+                    .test-speech-btn {
+                        background: rgba(255, 193, 7, 0.2);
+                        border: 1px solid rgba(255, 193, 7, 0.3);
+                        border-radius: 20px;
+                        padding: 8px 16px;
+                        color: #FFC107;
+                        font-size: 0.9rem;
+                        cursor: pointer;
+                        margin: 10px 0;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .test-speech-btn:hover {
+                        background: rgba(255, 193, 7, 0.3);
+                        transform: translateY(-1px);
+                    }
                 </style>
             </head>
             <body>
@@ -177,6 +194,7 @@ class WebAssistant:
                     </button>
                     <div id="status" class="status">Click to speak</div>
                     <div id="memoryCount" class="memory-count">0 memories stored</div>
+                    <button id="testSpeech" class="test-speech-btn" onclick="testSpeech()">🔊 Test Speech</button>
                     
                     <div id="aiResponse" class="ai-response" style="display: none;">
                         <h4>🤖 MyAssistant says:</h4>
@@ -270,6 +288,8 @@ class WebAssistant:
 
                     function speakText(text) {
                         if ('speechSynthesis' in window) {
+                            console.log('Attempting to speak:', text);
+                            
                             // Stop any current speech
                             speechSynthesis.cancel();
                             
@@ -278,19 +298,44 @@ class WebAssistant:
                             utterance.pitch = 1;
                             utterance.volume = 0.8;
                             
-                            // Try to use a female voice if available
-                            const voices = speechSynthesis.getVoices();
-                            const femaleVoice = voices.find(voice => 
-                                voice.name.includes('Female') || 
-                                voice.name.includes('Samantha') || 
-                                voice.name.includes('Karen') ||
-                                voice.name.includes('Victoria')
-                            );
-                            if (femaleVoice) {
-                                utterance.voice = femaleVoice;
-                            }
+                            // Wait for voices to load if needed
+                            const speakWithVoice = () => {
+                                const voices = speechSynthesis.getVoices();
+                                console.log('Available voices:', voices.length);
+                                
+                                // Try to use a female voice if available
+                                const femaleVoice = voices.find(voice => 
+                                    voice.name.includes('Female') || 
+                                    voice.name.includes('Samantha') || 
+                                    voice.name.includes('Karen') ||
+                                    voice.name.includes('Victoria') ||
+                                    voice.name.includes('Google UK English Female') ||
+                                    voice.name.includes('Microsoft Zira Desktop')
+                                );
+                                
+                                if (femaleVoice) {
+                                    utterance.voice = femaleVoice;
+                                    console.log('Using voice:', femaleVoice.name);
+                                } else {
+                                    console.log('Using default voice');
+                                }
+                                
+                                utterance.onstart = () => console.log('Speech started');
+                                utterance.onend = () => console.log('Speech ended');
+                                utterance.onerror = (event) => console.error('Speech error:', event.error);
+                                
+                                speechSynthesis.speak(utterance);
+                            };
                             
-                            speechSynthesis.speak(utterance);
+                            // If voices are already loaded, speak immediately
+                            if (speechSynthesis.getVoices().length > 0) {
+                                speakWithVoice();
+                            } else {
+                                // Wait for voices to load
+                                speechSynthesis.onvoiceschanged = speakWithVoice;
+                            }
+                        } else {
+                            console.error('Speech synthesis not supported');
                         }
                     }
 
@@ -376,6 +421,11 @@ class WebAssistant:
                                 data: transcript
                             }));
                         }
+                    }
+
+                    function testSpeech() {
+                        console.log('Testing speech synthesis...');
+                        speakText("Hello! This is a test of the speech synthesis. Can you hear me?");
                     }
 
                     // Initialize
