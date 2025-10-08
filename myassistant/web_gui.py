@@ -74,7 +74,7 @@ class WebAssistant:
                         background: transparent;
                         cursor: pointer;
                         transition: all 0.3s ease;
-                        margin: 30px 0;
+                        margin: 50px 0 150px 0; /* More space below smiler */
                         box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
                         overflow: hidden;
                         position: relative;
@@ -212,7 +212,7 @@ class WebAssistant:
                     
                     .text-input-container {
                         position: fixed;
-                        bottom: 220px; /* Move up to make room for smiler face */
+                        bottom: 50px; /* Move back down to bottom */
                         left: 50%;
                         transform: translateX(-50%);
                         width: 90%;
