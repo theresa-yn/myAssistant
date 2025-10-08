@@ -400,8 +400,8 @@ class WebAssistant:
                             speechSynthesis.cancel();
                             
                             const utterance = new SpeechSynthesisUtterance(text);
-                            utterance.rate = 0.85;  // Slightly slower for clarity
-                            utterance.pitch = 1.1;  // Slightly higher pitch like Siri
+                            utterance.rate = 0.8;   // Siri's speaking rate
+                            utterance.pitch = 1.0;  // Siri's natural pitch
                             utterance.volume = 1.0; // Maximum volume
                             
                             // Wait for voices to load if needed
@@ -409,19 +409,19 @@ class WebAssistant:
                                 const voices = speechSynthesis.getVoices();
                                 console.log('Available voices:', voices.length);
                                 
-                                // Try to use a Siri-like voice (prioritize high-quality voices)
+                                // Try to use Siri's voice specifically
                                 const preferredVoices = [
-                                    'Samantha',           // macOS Siri-like voice
-                                    'Karen',             // macOS female voice
-                                    'Victoria',          // macOS female voice
+                                    'Samantha',           // macOS Siri voice
+                                    'Siri',              // Direct Siri voice
+                                    'Samantha Enhanced', // Enhanced Siri voice
+                                    'Karen',             // macOS female voice (Siri-like)
+                                    'Victoria',          // macOS female voice (Siri-like)
                                     'Alex',              // macOS male voice
-                                    'Google UK English Female',  // Chrome
-                                    'Microsoft Zira Desktop',    // Edge
-                                    'Microsoft Hazel Desktop',   // Edge
-                                    'Google US English Female',  // Chrome
-                                    'Female',            // Generic female
-                                    'Samantha Enhanced', // Enhanced version
-                                    'Karen Enhanced'     // Enhanced version
+                                    'Google UK English Female',  // Chrome Siri-like
+                                    'Microsoft Zira Desktop',    // Edge Siri-like
+                                    'Microsoft Hazel Desktop',   // Edge Siri-like
+                                    'Google US English Female',  // Chrome Siri-like
+                                    'Female'             // Generic female
                                 ];
                                 
                                 let selectedVoice = null;
@@ -543,8 +543,8 @@ class WebAssistant:
                     }
 
                     function testSpeech() {
-                        console.log('Testing speech synthesis...');
-                        speakWithLanguage("Hello! This is a test of the speech synthesis. Can you hear me?", 'en-US');
+                        console.log('Testing Siri voice...');
+                        speakWithLanguage("Hello! This is a test of the Siri voice. Can you hear me speaking like Siri?", 'en-US');
                     }
 
                     function testAIResponse() {
@@ -622,8 +622,8 @@ class WebAssistant:
                             speechSynthesis.cancel();
                             
                             const utterance = new SpeechSynthesisUtterance(text);
-                            utterance.rate = 0.85;  // Slightly slower for clarity
-                            utterance.pitch = 1.1;  // Slightly higher pitch like Siri
+                            utterance.rate = 0.8;   // Siri's speaking rate
+                            utterance.pitch = 1.0;  // Siri's natural pitch
                             utterance.volume = 1.0; // Maximum volume
                             utterance.lang = language; // Set language
                             
