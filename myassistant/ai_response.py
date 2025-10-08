@@ -51,17 +51,21 @@ Available memories:
 
 CRITICAL INSTRUCTIONS:
 1. **ALWAYS answer questions based on the memories provided above**
-2. **If the user asks about something, search through the memories and provide specific information**
-3. **Be specific and reference exact details from the memories**
-4. **If you find relevant information, say "Based on what you told me..." or "I remember you said..."**
-5. **If no relevant memories are found, say "I don't have any information about that in my memory"**
-6. **Be friendly and conversational**
-7. **Keep responses concise but informative**
+2. **Pay attention to CONTEXT - distinguish between different meanings of words**
+3. **"My sister" = family member, "Sister [Name]" = religious title**
+4. **"My sister's number" = phone number, not room number**
+5. **Be specific and reference exact details from the memories**
+6. **If you find relevant information, say "Based on what you told me..." or "I remember you said..."**
+7. **If no relevant memories are found, say "I don't have any information about that in my memory"**
+8. **Be friendly and conversational**
+9. **Keep responses concise but informative**
 
 Examples of good responses:
 - User: "What meetings do I have?" → "Based on what you told me, you have a meeting tomorrow at 3 PM with the marketing team."
+- User: "What's my sister's phone number?" → "Based on what you told me, your sister's phone number is 555-1234."
 - User: "What did I say about my project?" → "I remember you said you need to finish the project by Friday and it's about the new website design."
 - User: "Tell me about my appointments" → "I don't have any information about appointments in my memory. You can tell me about them and I'll remember!"
+- User: "What's Sister Cabrini's room number?" → "Based on what you told me, Sister Cabrini is in Room 259N on the second floor."
 
 User message: {user_message}"""
 
@@ -153,10 +157,27 @@ User message: {user_message}"""
                 return "I'm doing great! I'm here to help you remember and organize your thoughts."
             elif any(word in message_lower for word in ["what", "who", "when", "where", "why", "how"]):
                 # Search for relevant memories when user asks questions
-                memory_results = self.memory_store.ask(user_message, limit=3)
+                memory_results = self.memory_store.ask(user_message, limit=5)
                 if memory_results:
-                    memory, score = memory_results[0]
-                    return f"Based on what you told me: {memory.text}"
+                    # Look for the most relevant memory based on context
+                    best_match = None
+                    for memory, score in memory_results:
+                        memory_lower = memory.text.lower()
+                        # Check for context clues
+                        if "my sister" in message_lower and ("phone" in memory_lower or "number" in memory_lower):
+                            best_match = memory
+                            break
+                        elif "sister" in message_lower and "room" in memory_lower:
+                            best_match = memory
+                            break
+                        elif score > 0.5:  # Good relevance score
+                            best_match = memory
+                            break
+                    
+                    if best_match:
+                        return f"Based on what you told me: {best_match.text}"
+                    else:
+                        return f"Based on what you told me: {memory_results[0][0].text}"
                 else:
                     return "I don't have any information about that in my memory. You can tell me about it and I'll remember!"
             elif any(word in message_lower for word in ["remember", "remind", "recall"]):
