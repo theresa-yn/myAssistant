@@ -219,10 +219,11 @@ class WebAssistant:
                             😊
                         </video>
                     </button>
-                    <div id="status" class="status">Click to speak</div>
-                    <div id="memoryCount" class="memory-count">0 memories stored</div>
+                    <!-- Hidden elements for functionality -->
+                    <div id="status" class="status" style="display: none;">Click to speak</div>
+                    <div id="memoryCount" class="memory-count" style="display: none;">0 memories stored</div>
                     
-                    <div class="language-selector">
+                    <div class="language-selector" style="display: none;">
                         <label for="languageSelect">🌐 Language:</label>
                         <select id="languageSelect" onchange="changeLanguage()">
                             <option value="vi-VN">🇻🇳 Tiếng Việt</option>
@@ -230,15 +231,17 @@ class WebAssistant:
                         </select>
                     </div>
                     
-                    <button id="testSpeech" class="test-speech-btn" onclick="testSpeech()">🔊 Test Speech</button>
-                    <button id="testAIResponse" class="test-speech-btn" onclick="testAIResponse()">🤖 Test AI Response</button>
+                    <button id="testSpeech" class="test-speech-btn" onclick="testSpeech()" style="display: none;">🔊 Test Speech</button>
+                    <button id="testAIResponse" class="test-speech-btn" onclick="testAIResponse()" style="display: none;">🤖 Test AI Response</button>
                     
+                    <!-- AI response will show temporarily when speaking -->
                     <div id="aiResponse" class="ai-response" style="display: none;">
                         <h4>🤖 MyAssistant says:</h4>
                         <p></p>
                         <small style="color: rgba(255, 255, 255, 0.7); font-size: 0.8rem;">Click to dismiss</small>
                     </div>
                     
+                    <!-- Recent memories will show temporarily -->
                     <div id="recentMemories" class="recent-memories" style="display: none;">
                         <h3>Recent Memories:</h3>
                         <div id="memoriesList"></div>
@@ -324,10 +327,10 @@ class WebAssistant:
                             aiResponseDiv.style.display = 'none';
                         };
                         
-                        // Hide after 30 seconds (increased from 10)
+                        // Hide after 8 seconds (shorter since it's the only visible feedback)
                         setTimeout(() => {
                             aiResponseDiv.style.display = 'none';
-                        }, 30000);
+                        }, 8000);
                     }
 
                     function speakText(text) {

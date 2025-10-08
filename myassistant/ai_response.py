@@ -34,8 +34,8 @@ class AIResponseSystem:
             recent_memories = self.memory_store.list_recent(limit=5)
             context = "\n".join([f"- {mem.text}" for mem in recent_memories])
             
-            # Create system prompt
-            system_prompt = f"""You are MyAssistant, a helpful AI assistant with access to the user's personal memories. 
+            # Create system prompt with reminder capabilities
+            system_prompt = f"""You are MyAssistant, a helpful AI assistant with access to the user's personal memories and tasks. 
 
 Recent memories:
 {context}
@@ -46,6 +46,15 @@ You should:
 3. Answer questions based on stored information
 4. Keep responses concise and conversational
 5. Respond in {language} if possible
+6. **IMPORTANT: Proactively remind the user of tasks, deadlines, or important things they mentioned before**
+7. Look for patterns in their memories to suggest relevant reminders
+8. If they mention new tasks or deadlines, acknowledge and offer to remind them later
+
+Examples of proactive reminders:
+- "By the way, you mentioned you have a meeting tomorrow at 3 PM"
+- "Don't forget about your dentist appointment next week"
+- "You told me you wanted to call your mom this weekend"
+- "I remember you said you need to finish that project by Friday"
 
 User message: {user_message}"""
 
@@ -95,44 +104,104 @@ User message: {user_message}"""
         if language == "vi":
             # Vietnamese responses
             if any(word in message_lower for word in ["xin chào", "chào", "hello", "hi"]):
-                return "Xin chào! Tôi là MyAssistant. Tôi có thể giúp bạn ghi nhớ mọi thứ và trả lời câu hỏi!"
+                # Check for reminders when greeting
+                reminders = self._get_relevant_reminders(user_message)
+                base_response = "Xin chào! Tôi là MyAssistant. Tôi có thể giúp bạn ghi nhớ mọi thứ và trả lời câu hỏi!"
+                return base_response + (" " + reminders if reminders else "")
             elif any(word in message_lower for word in ["bạn khỏe không", "thế nào", "sao"]):
                 return "Tôi đang rất tốt! Tôi ở đây để giúp bạn ghi nhớ và tổ chức suy nghĩ."
             elif any(word in message_lower for word in ["cảm ơn", "thanks"]):
                 return "Không có gì! Tôi rất vui được giúp bạn ghi nhớ và tổ chức suy nghĩ."
             elif any(word in message_lower for word in ["tạm biệt", "bye", "goodbye"]):
                 return "Tạm biệt! Tôi sẽ luôn ở đây khi bạn cần ghi nhớ điều gì hoặc hỏi câu hỏi."
+            elif any(word in message_lower for word in ["nhắc nhở", "remind", "nhớ", "quên"]):
+                # Look for reminder-related memories
+                memory_results = self.memory_store.ask(user_message, limit=5)
+                if memory_results:
+                    reminders = []
+                    for memory, score in memory_results[:3]:
+                        if any(keyword in memory.text.lower() for keyword in ["họp", "meeting", "cuộc hẹn", "appointment", "deadline", "hạn chót", "cần làm", "phải làm"]):
+                            reminders.append(f"- {memory.text}")
+                    if reminders:
+                        return f"Đây là những điều tôi nhắc nhở bạn:\n" + "\n".join(reminders)
+                return "Tôi sẽ giúp bạn nhắc nhở! Hãy cho tôi biết bạn cần nhắc nhở về điều gì."
             else:
-                # Search through memories for relevant information
+                # Search through memories for relevant information and reminders
                 memory_results = self.memory_store.ask(user_message, limit=3)
                 if memory_results:
                     memory, score = memory_results[0]
-                    return f"Tôi tìm thấy một số ký ức liên quan: {memory.text}. Bạn có muốn tôi tìm thêm thông tin không?"
+                    reminders = self._get_relevant_reminders(user_message)
+                    base_response = f"Tôi tìm thấy một số ký ức liên quan: {memory.text}. Bạn có muốn tôi tìm thêm thông tin không?"
+                    return base_response + (" " + reminders if reminders else "")
                 else:
                     return "Tôi đã lưu thông tin đó! Bạn có muốn biết điều gì cụ thể về ký ức của mình không?"
         else:
             # English responses
             if any(word in message_lower for word in ["hello", "hi", "hey"]):
-                return "Hello! I'm MyAssistant. I can help you remember things and answer questions!"
+                # Check for reminders when greeting
+                reminders = self._get_relevant_reminders(user_message)
+                base_response = "Hello! I'm MyAssistant. I can help you remember things and answer questions!"
+                return base_response + (" " + reminders if reminders else "")
             elif any(word in message_lower for word in ["how are you", "how are you doing"]):
                 return "I'm doing great! I'm here to help you remember and organize your thoughts."
             elif any(word in message_lower for word in ["what", "who", "when", "where", "why", "how"]):
                 return "That's a great question! I can help you find information from your memories. Try asking me about something you've told me before."
             elif any(word in message_lower for word in ["remember", "remind", "recall"]):
+                # Look for reminder-related memories
+                memory_results = self.memory_store.ask(user_message, limit=5)
+                if memory_results:
+                    reminders = []
+                    for memory, score in memory_results[:3]:
+                        if any(keyword in memory.text.lower() for keyword in ["meeting", "appointment", "deadline", "need to", "have to", "should", "must", "call", "email", "finish", "complete"]):
+                            reminders.append(f"- {memory.text}")
+                    if reminders:
+                        return f"Here are some things I can remind you about:\n" + "\n".join(reminders)
                 return "I can help you remember things! I store everything you tell me, and you can search through your memories anytime."
             elif any(word in message_lower for word in ["thank", "thanks"]):
                 return "You're welcome! I'm happy to help you remember and organize your thoughts."
             elif any(word in message_lower for word in ["goodbye", "bye", "see you"]):
                 return "Goodbye! I'll be here whenever you need to remember something or ask a question."
             else:
-                # Search through memories for relevant information
+                # Search through memories for relevant information and reminders
                 memory_results = self.memory_store.ask(user_message, limit=3)
                 if memory_results:
                     memory, score = memory_results[0]
-                    return f"I found some related memories: {memory.text}. Would you like me to search for more information?"
+                    reminders = self._get_relevant_reminders(user_message)
+                    base_response = f"I found some related memories: {memory.text}. Would you like me to search for more information?"
+                    return base_response + (" " + reminders if reminders else "")
                 else:
                     return "I've stored that information! Is there anything specific you'd like to know about your memories?"
     
+    def _get_relevant_reminders(self, user_message: str) -> str:
+        """
+        Get relevant reminders based on user's memories
+        """
+        try:
+            # Search for task-related memories
+            memory_results = self.memory_store.ask(user_message, limit=10)
+            
+            # Keywords that indicate tasks or reminders
+            task_keywords = [
+                "meeting", "appointment", "deadline", "need to", "have to", "should", "must",
+                "call", "email", "finish", "complete", "submit", "due", "tomorrow", "next week",
+                "họp", "cuộc hẹn", "hạn chót", "cần làm", "phải làm", "gọi", "gửi email",
+                "hoàn thành", "nộp", "ngày mai", "tuần sau"
+            ]
+            
+            reminders = []
+            for memory, score in memory_results[:5]:  # Check top 5 most relevant
+                memory_lower = memory.text.lower()
+                if any(keyword in memory_lower for keyword in task_keywords):
+                    reminders.append(f"By the way, you mentioned: {memory.text}")
+            
+            if reminders:
+                return "\n".join(reminders[:3])  # Return top 3 reminders
+            return ""
+            
+        except Exception as e:
+            print(f"Error getting reminders: {e}")
+            return ""
+
     def is_available(self) -> bool:
         """Check if AI is available"""
         return self.client is not None
